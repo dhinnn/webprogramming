@@ -8,10 +8,11 @@ $codeErr = $nameErr = $categoryErr = $priceErr = $imageErr = '';
 
 $uploadDir = '../uploads/';
 $allowedType = ['jpg', 'jpeg', 'png'];
+$maxFileSize = 5 * 1024 * 1024; // 5MB in bytes
 
 $productObj = new ProductImage();
 
-if($_SERVER['REQUEST_METHOD'] == 'POST'){
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     $code = clean_input($_POST['code']);
     $name = clean_input($_POST['name']);
@@ -19,38 +20,41 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
     $price = clean_input($_POST['price']);
     $image = $_FILES['product_image']['name'];
     $imageTemp = $_FILES['product_image']['tmp_name'];
+    $imageSize = $_FILES['product_image']['size'];
 
-    if(empty($code)){
+    if (empty($code)) {
         $codeErr = 'Product Code is required.';
-    } else if ($productObj->codeExists($code)){
+    } else if ($productObj->codeExists($code)) {
         $codeErr = 'Product Code already exists.';
     }
 
-    if(empty($name)){
+    if (empty($name)) {
         $nameErr = 'Name is required.';
     }
 
-    if(empty($category)){
+    if (empty($category)) {
         $categoryErr = 'Category is required.';
     }
 
-    if(empty($price)){
+    if (empty($price)) {
         $priceErr = 'Price is required.';
-    } else if (!is_numeric($price)){
+    } else if (!is_numeric($price)) {
         $priceErr = 'Price should be a number.';
-    } else if ($price < 1){
+    } else if ($price < 1) {
         $priceErr = 'Price must be greater than 0.';
     }
 
     $imageFileType = strtolower(pathinfo($image, PATHINFO_EXTENSION));
-    if(empty($image)){
+    if (empty($image)) {
         $imageErr = 'Product image is required.';
-    }else if(!in_array($imageFileType, $allowedType)){
+    } else if (!in_array($imageFileType, $allowedType)) {
         $imageErr = 'Accepted files are jpg, jpeg, and png only.';
+    } else if ($imageSize > $maxFileSize) {
+        $imageErr = 'File size must be less than 5MB.';
     }
 
     // If there are validation errors, return them as JSON
-    if(!empty($codeErr) || !empty($nameErr) || !empty($categoryErr) || !empty($priceErr) || !empty($imageErr)){
+    if (!empty($codeErr) || !empty($nameErr) || !empty($categoryErr) || !empty($priceErr) || !empty($imageErr)) {
         echo json_encode([
             'status' => 'error',
             'codeErr' => $codeErr,
@@ -62,14 +66,13 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
         exit;
     }
 
-    if(empty($codeErr) && empty($nameErr) && empty($categoryErr) && empty($priceErr) && empty($imageErr)){
+    if (empty($codeErr) && empty($nameErr) && empty($categoryErr) && empty($priceErr) && empty($imageErr)) {
         $productObj->code = $code;
         $productObj->name = $name;
         $productObj->category_id = $category;
         $productObj->price = $price;
 
-        if($productObj->add()){
-
+        if ($productObj->add()) {
             $targetImage = $uploadDir . uniqid() . basename($image);
             move_uploaded_file($imageTemp, $targetImage);
 
